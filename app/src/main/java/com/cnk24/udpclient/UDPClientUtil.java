@@ -160,11 +160,10 @@ public class UDPClientUtil {
         public void run() {
 
             if ( mSocket != null ) {
-
                 try {
                     // 패킷 전송
                     DatagramPacket sendPacket = new DatagramPacket(mSendByte, mSendByte.length);
-                    mUDPSocket.send(sendPacket);
+                    mSocket.send(sendPacket);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }

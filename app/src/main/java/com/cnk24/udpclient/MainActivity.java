@@ -13,13 +13,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
-        UDPClientUtil.getInstance().connectUdpAddressAndPort(2222);
+        UDPClientUtil.getInstance().connectUdpAddressAndPort(8631);
 
         Button btn = findViewById(R.id.button);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                UDPClientUtil.getInstance().sendMessage("TEST");
+                UDPClientUtil.getInstance().sendMessage("MULTIMEDIA_ALBUM");
             }
         });
 
