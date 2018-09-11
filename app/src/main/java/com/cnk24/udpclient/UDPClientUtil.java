@@ -2,15 +2,22 @@ package com.cnk24.udpclient;
 
 import android.util.Log;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class UDPClientUtil {
 
-    /**
-     * Shared Instance
-     */
+    private static int __PORT = 15000;
     private static UDPClientUtil __sharedUDPClient = null;
+
+    private boolean mIsStart = false;
+    private UDPConnector mUdpConnectorThread = null;
+    private DatagramSocket mUDPSocket = null;
 
     /**
      * UDPClientUtil Get Shared Instance
@@ -24,21 +31,6 @@ public class UDPClientUtil {
     }
 
     /**
-     * UDP 연결 시작
-     */
-    private boolean mIsStart = false;
-
-    /**
-     * UDP Connect / Receiver Thread
-     */
-    private UDPConnector mUdpConnectorThread = null;
-
-    /**
-     * UDP Socket
-     */
-    DatagramSocket mUDPSocket = null;
-
-    /**
      * Constructor
      */
     private UDPClientUtil() {
@@ -47,12 +39,11 @@ public class UDPClientUtil {
 
     /**
      * UDP 연결
-     * @param port
      */
-    public void connectUdpAddressAndPort(int port) {
+    public void connectUdpAddressAndPort() {
         if ( mIsStart == false ) {
             mIsStart = true;
-            mUdpConnectorThread = new UDPConnector(port);
+            mUdpConnectorThread = new UDPConnector(__PORT);
             Thread connector = new Thread(mUdpConnectorThread);
             connector.start();
         }
@@ -82,14 +73,8 @@ public class UDPClientUtil {
      * UDP Connect And Receive Packet Thread
      */
     private class UDPConnector extends Thread {
-        /**
-         * UDP 연결 포트
-         */
-        private final int mUdpPort;
 
-        /**
-         * UDP Thread Stop Flag
-         */
+        private final int mUdpPort;
         private boolean mThreadStop;
 
         /**
@@ -136,14 +121,11 @@ public class UDPClientUtil {
      * UDP Send Packet Thread
      */
     private class UDPSendPacket extends Thread {
-        /**
-         * UDP Socket
-         */
-        private final DatagramSocket mSocket;
 
-        /**
-         * Send Byte
-         */
+        private static int TYPE_MESSAGE = 1;
+        private static int TYPE_FILE = 2;
+
+        private final DatagramSocket mSocket;
         private final byte[] mSendByte;
 
         /**
@@ -156,14 +138,75 @@ public class UDPClientUtil {
             mSendByte = bytes;
         }
 
+        private void UDPSendFile() {
+            File f = new File("./img/2.png");
+            if (!f.exists()) {
+                System.exit(0);
+            }
+
+            try {
+                InetAddress ia = InetAddress.getByName("127.0.0.1");
+
+                // 데이터 전송 시작 신호 전송
+                String str = "start";
+                // Constructs a datagram packet for sending packets of length length
+                // to the
+                // specified port number on the specified host.
+                DatagramPacket dp = new DatagramPacket(str.getBytes(), str.getBytes().length, ia, __PORT);
+
+                // 데이터 전송
+                mSocket.send(dp);
+                // 파일이름 전송
+                String data = "2.png";
+                dp = new DatagramPacket(data.getBytes(), data.getBytes().length, ia, __PORT);
+                mSocket.send(dp);
+
+                // 파일을 읽을때는 바이트단위!!
+                // 파일을 바이트단위로 읽고, 너무많이 접근하니까이걸가지고 다시 버퍼에 넣는다
+                DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
+                FileInputStream fi = new FileInputStream(f);
+
+                System.out.printf(dis.toString());
+
+                // 한번에 다읽으면 부담되기 때문에 적절한크기의 버퍼로 나눔
+                byte[] by = new byte[512];
+                int count = 0;
+                while (true) {
+                    // dis 를 읽어 by 배열에 0부터 length만큼 저장
+                    // 읽은 갯수 리턴.
+                    int x = dis.read(by, 0, by.length);
+                    if (x == -1)
+                        break;
+                    // 읽은 갯수까지 'x'
+                    dp = new DatagramPacket(by, x, ia, __PORT); // *
+                    mSocket.send(dp);
+                    System.out.println(x);
+
+                    count++;
+
+                }
+                System.out.println(count);
+                // 전송신호전송
+                str = "end";
+                dp = new DatagramPacket(str.getBytes(), str.getBytes().length, ia, __PORT);
+                mSocket.send(dp);
+
+                dis.close();
+                mSocket.close();
+
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
         @Override
         public void run() {
 
             if ( mSocket != null ) {
                 try {
-                    // 패킷 전송
                     DatagramPacket sendPacket = new DatagramPacket(mSendByte, mSendByte.length);
                     mSocket.send(sendPacket);
+                    mSocket.close();
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }

@@ -13,7 +13,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
-        UDPClientUtil.getInstance().connectUdpAddressAndPort(8631);
+        UDPClientUtil.getInstance().connectUdpAddressAndPort();
 
         Button btn = findViewById(R.id.button);
         btn.setOnClickListener(new View.OnClickListener() {
